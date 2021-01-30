@@ -19,10 +19,16 @@ STRAP_HOLDER_WIDTH = 20;
 STRAP_HOLDER_HEIGHT = 3;
 STRAP_HOLDER_OFFSET = 5;
 
+// Provide holes for Suction cups
+SUCTION_CUP_HOLES = true;
+SUCTION_CUP_KNOB_DIAMETER_MAX = 15;
+SUCTION_CUP_KNOB_DIAMETER_MIN = 9.5;
+SUCTION_CUP_ADDITIONAL_LID_HEIGHT = 3;
+SUCTION_CUP_GPS_DISPLACE = SUCTION_CUP_HOLES ? 10 : 0; //Only displace GPS hole for 10mm of Suction cups will be installed
+
 // Set this to "3", "4" or "HYBRID". The only difference is a slighly moved
 // power connector
 RASPI_VERSION = "HYBRID";
-
 
 // wall and base/top thickness
 WALL_THICKNESS = 1.8;
@@ -351,11 +357,21 @@ module fan(holedist=32, outercircle=19, innercircle=10) {
     }
 }
 
+//Define holes for Suction cup
+module suction_cup_holes() {
+        circle(SUCTION_CUP_KNOB_DIAMETER_MAX/2);
+        translate([0, SUCTION_CUP_KNOB_DIAMETER_MAX, 0]) circle(SUCTION_CUP_KNOB_DIAMETER_MIN/2);
+        translate([-SUCTION_CUP_KNOB_DIAMETER_MIN/2, 0, 0]) square([SUCTION_CUP_KNOB_DIAMETER_MIN, SUCTION_CUP_KNOB_DIAMETER_MAX]);
+}
 
 // MAIN MODULE TO BUILD THE LID
 module lid() {
     difference() {
-        lid_height = WALL_THICKNESS + 1.5 + _tbeam_pcb_thickness;
+
+        // If Suction cup holes are required add additional lid_height of 3mm
+        SUCTION_CUP_HEIGHT = SUCTION_CUP_HOLES ? SUCTION_CUP_ADDITIONAL_LID_HEIGHT : 0;
+        lid_height = WALL_THICKNESS + 1.5 + _tbeam_pcb_thickness + SUCTION_CUP_HEIGHT;
+
         union() {
             
             // lid height will be thickness of the base + 1.5mm space for soldering joints on the T-Beam
@@ -414,8 +430,28 @@ module lid() {
                 linear_extrude(height=WALL_THICKNESS+0.05) fan(holedist=24, outercircle=14, innercircle=9);
         }
             
+        //Suction cup holes
+        //Hole beside fan
+        if (SUCTION_CUP_HOLES){
+            //Hole beside fan
+            translate([_case_main_width-12, 26, -0.01])
+            linear_extrude(height=WALL_THICKNESS + 0.05) rotate([0,0,180]){
+                suction_cup_holes();
+            }
+            //Hole beside 1090 antenna
+            translate([_case_main_width-15, 115, -0.01])
+            linear_extrude(height=WALL_THICKNESS + 0.05) rotate([0,0,-45]){
+                suction_cup_holes();
+            }
+            //Hole beside 868 antenna
+            translate([_case_main_width-53, 115, -0.01])
+            linear_extrude(height=WALL_THICKNESS + 0.05) rotate([0,0,45]){
+                suction_cup_holes();
+            }
+        }
+        
         // GPS Antenna
-        translate([45, _case_total_length-_case_wing_length/2, -0.01])
+        translate([45 - SUCTION_CUP_GPS_DISPLACE, _case_total_length-_case_wing_length/2, -0.01])
             linear_extrude(height=WALL_THICKNESS + 0.05) gps_antenna_hole();
         
         // 868 and 1090 text
